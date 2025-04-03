@@ -10,10 +10,12 @@ from skyfield.toposlib import Topos
 
 
 # 绘制星下点轨迹图 参数 起始时间 观测时间长度(单位 s)  观测卫星列表 观测点经纬度
-def sky_plot(start_time_utc,
-             time_list_len,
-             satellites,
-             lat, lon):
+def sky_plot(
+    start_time_utc,
+    time_list_len,
+    satellites,
+    lat, lon
+):
     ts = load.timescale()
     time_list = [ts.from_datetime(start_time_utc + timedelta(seconds=s)) for s in range(time_list_len)]
 
