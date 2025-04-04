@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from skyfield.api import wgs84
 from skyfield.toposlib import GeographicPosition
 from skyfield.sgp4lib import EarthSatellite
@@ -68,6 +68,16 @@ def visable(
     alt, _ , _ = topocentric.altaz()
     return alt.degrees > ELEVATION_MASK_ANGLE
 
+
+def visable_period(sat, observer, start_time_utc):
+    difference = sat - observer
+    time_list = [ts.from_datetime(start_time_utc + timedelta(seconds=s)) for s in range(120)]
+    for t in time_list:
+        topocentric = difference.at(t)
+        alt, az, distance = topocentric.altaz()
+        if alt.degrees < 25:
+            return False
+    return True
 
 
 
