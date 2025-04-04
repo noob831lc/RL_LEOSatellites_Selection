@@ -113,7 +113,7 @@ def save_tle_file(
     将卫星数据保存到本地文件
     参数:
         response: request_tle_file 函数的响应对象
-        group: 请求星座的名称
+        group: 请求卫星组的名称
         format: 卫星数据的格式
         directory_name: 保存文件的目录
 
