@@ -4,9 +4,9 @@ from sklearn.cluster import KMeans
 
 def compute_dgdop(combo, user_pos):
     """
-    计算给定卫星组合 combo 的 DGDOP 指标（单位 m）
-    combo: 卫星列表（Satellite 对象）
-    user_pos: 观测者位置（单位 m）
+    计算给定卫星组合 combo 的 DGDOP 指标(单位 m)
+    combo: 卫星列表(Satellite 对象)
+    user_pos: 观测者位置(单位 m)
     """
     G = []
     for sat in combo:

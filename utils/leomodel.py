@@ -1,8 +1,8 @@
-from skyfield.api import EarthSatellite
-from datetime import datetime
-from skyfield.toposlib import GeographicPosition
 import numpy as np
-from TLE import ts
+from skyfield.api import EarthSatellite
+from skyfield.toposlib import GeographicPosition
+from datetime import datetime
+from utils.tle import timescale as ts
 
 
 class Satellite:

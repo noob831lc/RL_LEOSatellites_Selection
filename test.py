@@ -4,8 +4,8 @@ from skyfield.framelib import tirs
 from skyfield.toposlib import wgs84
 
 from sat_selection import ossa_selection, update_satellite_info, Satellite, fcsdp_selection, maxele_selection
-from utils.TLE import request_tle_file, save_tle_file, parse_tle_data, filter_epoch
-from utils.Plot import sky_plot
+from utils.tle import request_tle_file, save_tle_file, parse_tle_data, filter_epoch
+from utils.sky_plot import sky_plot
 
 
 def visable(sat, observer, start_time_utc):

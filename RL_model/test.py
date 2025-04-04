@@ -3,9 +3,9 @@ import torch.optim as optim
 import time
 import numpy as np
 from datetime import datetime, timezone
-from utils.leo_param import observer, visable
-from utils.TLE import parse_tle_data
-from utils.TLE import timescale as ts
+from utils.leoparam import observer, visable
+from utils.tle import parse_tle_data
+from utils.tle import timescale as ts
 from RL_model.model import PointerNet_GNN, compute_adjacency
 from RL_model.train import train
 from algorithm.Selection import compute_dgdop

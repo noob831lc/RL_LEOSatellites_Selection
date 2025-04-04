@@ -1,12 +1,12 @@
-from skyfield.api import wgs84, load
+from datetime import datetime
+from skyfield.api import wgs84
 from skyfield.toposlib import GeographicPosition
 from skyfield.sgp4lib import EarthSatellite
-from datetime import datetime, timezone
-from skyfield.framelib import itrs, tirs, ICRS
+from skyfield.framelib import tirs
 
-from TLE import timescale as ts
+from utils.tle import timescale as ts
 
-alt = 15  # 仰角阈值（单位：度）
+ELEVATION_MASK_ANGLE= 15  # 截止高度角（单位：度）
 
 def observer(
     latitude_degrees: float = 0.0, 
@@ -38,20 +38,35 @@ def ecef_pos_and_velocity(
     vx, vy, vz = velocity.km_per_s
     return x, y, z, vx, vy, vz
 
+def ecef_pos(
+    satellite: EarthSatellite, 
+    utc_time: datetime
+) -> tuple:
+    """
+    Create an ECEF position.
+
+    Returns:
+        An ECEF position in meters
+    """
+    t = ts.from_datetime(utc_time)
+    distance = satellite.at(t).frame_xyz(tirs)
+    x, y, z = distance.km
+    return x, y, z
+
 
 def visable(
     sat: EarthSatellite, 
-    observer: GeographicPosition, 
+    ground_station: GeographicPosition, 
     utc: datetime
 ) -> bool:
     """
     判断 Satellite 对象是否可见（通过计算仰角 > xx°）
     """
     t = ts.from_datetime(utc)
-    difference = sat.sat_object - observer
+    difference = sat.sat_object - ground_station
     topocentric = difference.at(t)
-    alt, az, _ = topocentric.altaz()
-    return alt.degrees > alt
+    alt, _ , _ = topocentric.altaz()
+    return alt.degrees > ELEVATION_MASK_ANGLE
 
 
 
