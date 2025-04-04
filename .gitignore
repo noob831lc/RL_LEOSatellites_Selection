@@ -1,14 +1,7 @@
-# Ignore node_modules directory
-script/
-
-# Ignore build output
-.idea/
-
 # Ignore IDE and editor files
 .idea/
 
-# Ignore log files
+# Ignore png files
 *.png
-*.bsp
-# Ignore environment variables file
+
 
