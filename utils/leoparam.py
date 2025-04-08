@@ -63,14 +63,18 @@ def visable(
     判断 Satellite 对象是否可见（通过计算仰角 > xx°）
     """
     t = ts.from_datetime(utc)
-    difference = sat.sat_object - ground_station
+    difference = sat - ground_station
     topocentric = difference.at(t)
     alt, _ , _ = topocentric.altaz()
     return alt.degrees > ELEVATION_MASK_ANGLE
 
 
-def visable_period(sat, observer, start_time_utc):
-    difference = sat - observer
+def visable_period(
+    sat: EarthSatellite, 
+    ground_station: GeographicPosition, 
+    start_time_utc: datetime
+) -> bool:
+    difference = sat - ground_station
     time_list = [ts.from_datetime(start_time_utc + timedelta(seconds=s)) for s in range(120)]
     for t in time_list:
         topocentric = difference.at(t)

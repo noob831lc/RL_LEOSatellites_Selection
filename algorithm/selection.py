@@ -1,8 +1,16 @@
 import numpy as np
 from itertools import combinations
 from sklearn.cluster import KMeans
+from typing import List, Tuple, Optional, Sequence
 
-def compute_dgdop(combo, user_pos):
+# 从leomodel.py导入Satellite类型
+from utils.leomodel import Satellite
+
+
+def compute_dgdop(
+    combo: Sequence[Satellite], 
+    user_pos: np.ndarray
+) -> float:
     """
     计算给定卫星组合 combo 的 DGDOP 指标(单位 m)
     combo: 卫星列表(Satellite 对象)
@@ -24,15 +32,46 @@ def compute_dgdop(combo, user_pos):
         dop = np.sqrt(np.trace(Q))
     except np.linalg.LinAlgError:
         dop = np.inf
-    return 10 * dop
+    return dop
 
 
-def ossa_selection(satellites, user_pos, n):
+def compute_dgdop_pos(
+    sat_pos: List[np.ndarray], 
+    user_pos: np.ndarray
+) -> float:
+    """
+    计算给定卫星组合 combo 的 DGDOP 指标(单位 m)
+    combo: 卫星列表(Satellite 对象)
+    user_pos: 观测者位置(单位 m)
+    """
+    G = []
+    for pos in sat_pos:
+        diff = pos - user_pos
+        norm_diff = np.linalg.norm(diff)
+        if norm_diff == 0:
+            continue
+        unit_vector = diff / norm_diff
+        row = np.hstack([unit_vector, [1]])
+        G.append(row)
+    G = np.array(G)
+    epsilon = 1e-8
+    try:
+        Q = np.linalg.inv(G.T @ G + epsilon * np.eye(G.shape[1]))
+        dop = np.sqrt(np.trace(Q))
+    except np.linalg.LinAlgError:
+        dop = np.inf
+    return dop
+
+
+def ossa_selection(
+    satellites: List[Satellite], 
+    user_pos: np.ndarray, n: int
+) -> Tuple[Optional[Tuple[Satellite, ...]], float]:
     """
     OSSA 算法：遍历所有可能的 n 颗卫星组合，返回 DGDOP 最小的组合作为最佳方案
     """
-    best_combo = None
-    best_dop = np.inf
+    best_combo: Optional[Tuple[Satellite, ...]] = None
+    best_dop: float = np.inf
     for combo in combinations(satellites, n):
         dop_val = compute_dgdop(combo, user_pos)
         if dop_val < best_dop:
@@ -41,12 +80,15 @@ def ossa_selection(satellites, user_pos, n):
     return best_combo, best_dop
 
 
-def maxele_selection(satellites, user_pos, n):
+def maxele_selection(
+    satellites: List[Satellite], 
+    user_pos: np.ndarray, n: int
+) -> Tuple[List[Satellite], float]:
     """
     MaxEle 算法：将 360° 天区均分为 n 个区间，在每个区间内选取仰角最大的卫星
     """
     bins = np.linspace(0, 360, n + 1)
-    selected = []
+    selected: List[Satellite] = []
     for i in range(n):
         sats_in_bin = [sat for sat in satellites if bins[i] <= sat.azimuth < bins[i + 1]]
         if sats_in_bin:
@@ -62,7 +104,12 @@ def maxele_selection(satellites, user_pos, n):
     dop = compute_dgdop(selected, user_pos)
     return selected, dop
 
-def fcsdp_selection(satellites, user_pos, n):
+
+def fcsdp_selection(
+    satellites: List[Satellite], 
+    user_pos: np.ndarray, 
+    n: int
+) -> Tuple[List[Satellite], float]:
     """
     FCSDp 算法：基于分层聚类与加权匹配实现卫星选择。
     将卫星根据 phi 分为两组（上层与下层），各自利用 K-means 聚类后选出候选卫星，
@@ -81,15 +128,15 @@ def fcsdp_selection(satellites, user_pos, n):
         k_upper = (n + 1) // 2
         k_lower = (n - 1) // 2
 
-    selected_upper = []
+    selected_upper: List[Satellite] = []
     if upper and k_upper > 0:
         X_upper = np.array([[sat.beta] for sat in upper])
         kmeans_upper = KMeans(n_clusters=k_upper, random_state=0).fit(X_upper)
         centers_upper = kmeans_upper.cluster_centers_
         for clus_label in range(k_upper):
             indices = np.where(kmeans_upper.labels_ == clus_label)[0]
-            best_sat = None
-            best_weight = np.inf
+            best_sat: Optional[Satellite] = None
+            best_weight: float = np.inf
             for i in indices:
                 sat = upper[i]
                 cur_weight = abs(sat.beta - centers_upper[clus_label][0]) + abs(sat.phi - upper_label1)
@@ -99,15 +146,15 @@ def fcsdp_selection(satellites, user_pos, n):
             if best_sat is not None:
                 selected_upper.append(best_sat)
 
-    selected_lower = []
+    selected_lower: List[Satellite] = []
     if lower and k_lower > 0:
         X_lower = np.array([[sat.beta] for sat in lower])
         kmeans_lower = KMeans(n_clusters=k_lower, random_state=0).fit(X_lower)
         centers_lower = kmeans_lower.cluster_centers_
         for clus_label in range(k_lower):
             indices = np.where(kmeans_lower.labels_ == clus_label)[0]
-            best_sat = None
-            best_weight = np.inf
+            best_sat: Optional[Satellite] = None
+            best_weight: float = np.inf
             for i in indices:
                 sat = lower[i]
                 cur_weight = abs(sat.beta - centers_lower[clus_label][0]) + abs(sat.phi - lower_label1)

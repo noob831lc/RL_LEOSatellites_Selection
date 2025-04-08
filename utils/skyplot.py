@@ -1,7 +1,11 @@
 import numpy as np
 from datetime import datetime, timedelta, timezone
-from skyfield.api import load
+from skyfield.api import load, EarthSatellite
+from skyfield.timelib import Time
+from typing import List, Tuple, Any, Union, Optional
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 from skyfield.framelib import itrs, ICRS, tirs, ICRS_to_J2000
 from skyfield.toposlib import Topos
 
@@ -11,20 +15,21 @@ from skyfield.toposlib import Topos
 
 # 绘制星下点轨迹图 参数 起始时间 观测时间长度(单位 s)  观测卫星列表 观测点经纬度
 def sky_plot(
-    start_time_utc,
-    time_list_len,
-    satellites,
-    lat, lon
-):
+    start_time_utc: datetime,
+    time_list_len: int,
+    satellites: List[EarthSatellite],
+    lat: float, 
+    lon: float
+) -> None:
     ts = load.timescale()
-    time_list = [ts.from_datetime(start_time_utc + timedelta(seconds=s)) for s in range(time_list_len)]
+    time_list: List[Time] = [ts.from_datetime(start_time_utc + timedelta(seconds=s)) for s in range(time_list_len)]
 
     # 创建存储 ECEF 坐标的数组
-    sat_ecef = np.zeros((time_list_len, len(satellites), 3))
+    sat_ecef: np.ndarray = np.zeros((time_list_len, len(satellites), 3))
 
     # 地球参数
-    a = 6378.137  # 地球长半轴（赤道半径，单位：km）
-    e = 0.0818191908426  # 地球偏心率
+    a: float = 6378.137  # 地球长半轴（赤道半径，单位：km）
+    e: float = 0.0818191908426  # 地球偏心率
 
     # # 遍历所有时间和卫星，计算 ECEF 坐标
     for i, t in enumerate(time_list):
@@ -40,12 +45,12 @@ def sky_plot(
             sat_ecef[i, j, 1] = y
             sat_ecef[i, j, 2] = z
     #
-    phi = np.deg2rad(lat)  # 观测者纬度（示例：30°）
-    lam = np.deg2rad(lon)  # 观测者经度（示例：120°）
+    phi: float = np.deg2rad(lat)  # 观测者纬度（示例：30°）
+    lam: float = np.deg2rad(lon)  # 观测者经度（示例：120°）
     ts = load.timescale()
 
     # 创建地面站点对象
-    location = Topos(latitude_degrees=lat,
+    location: Topos = Topos(latitude_degrees=lat,
                      longitude_degrees=lon,
                      elevation_m=100)
 
@@ -57,30 +62,30 @@ def sky_plot(
 
     Xr, Yr, Zr = position.frame_xyz(itrs).m
 
-    R = get_rotation_matrix(phi, lam)
+    R: np.ndarray = get_rotation_matrix(phi, lam)
 
-    az_by_sv = []  # list of arrays，az_by_sv[s] 存储第 s 颗卫星所有时刻的方位角
-    el_by_sv = []  # list of arrays
+    az_by_sv: List[np.ndarray] = []  # list of arrays，az_by_sv[s] 存储第 s 颗卫星所有时刻的方位角
+    el_by_sv: List[np.ndarray] = []  # list of arrays
     #
     for s in range(len(satellites)):
-        az_list = []
-        el_list = []
+        az_list: List[float] = []
+        el_list: List[float] = []
         for t in range(time_list_len):
-            V = sat_ecef[t, s, :] - np.array([Xr, Yr, Zr])
-            ENU = R.dot(V)
+            V: np.ndarray = sat_ecef[t, s, :] - np.array([Xr, Yr, Zr])
+            ENU: np.ndarray = R.dot(V)
 
-            E_ = ENU[0]
-            N_ = ENU[1]
-            U_ = ENU[2]
+            E_: float = ENU[0]
+            N_: float = ENU[1]
+            U_: float = ENU[2]
 
             # 计算方位角[0, 2π)
-            az = np.arctan2(E_, N_)
+            az: float = np.arctan2(E_, N_)
             if az < 0:
                 az += 2 * np.pi
 
             # 计算仰角
-            horiz_dist = np.sqrt(E_ ** 2 + N_ ** 2)
-            el = np.arctan2(U_, horiz_dist)
+            horiz_dist: float = np.sqrt(E_ ** 2 + N_ ** 2)
+            el: float = np.arctan2(U_, horiz_dist)
 
             az_list.append(az)
             el_list.append(el)
@@ -91,8 +96,8 @@ def sky_plot(
     # ----------------------------
     # 4. Skyplot 绘制
     # ----------------------------
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, polar=True)
+    fig: Figure = plt.figure(figsize=(8, 8))
+    ax: Axes = fig.add_subplot(111, polar=True)
 
     ax.set_theta_zero_location('N')  # 0度在北方（顶部）
     ax.set_theta_direction(-1)  # 顺时针方向增加
@@ -101,12 +106,12 @@ def sky_plot(
     ax.set_rlim(0, 90)
 
     # 设置方位角刻度标签（每30度）
-    angles_deg = np.arange(0, 360, 30)
+    angles_deg: np.ndarray = np.arange(0, 360, 30)
     ax.set_thetagrids(angles_deg, labels=[f"{ang}°" for ang in angles_deg])
 
     # 设置径向网格和标签 - 关键修改部分
     # 我们需要在30°, 60°, 90°位置设置同心圆
-    radii = [30, 60, 90]  # 这些值直接对应天顶角（90-仰角）
+    radii: List[int] = [30, 60, 90]  # 这些值直接对应天顶角（90-仰角）
 
     for r in radii:
         circle = plt.Circle((0, 0), r, transform=ax.transData._b,
@@ -119,15 +124,15 @@ def sky_plot(
     ax.text(np.radians(90), 60, "60°", ha='left', va='center', fontsize=9)
     ax.text(np.radians(90), 90, "90°", ha='left', va='center', fontsize=9)
 
-    sat_nums = len(satellites)
+    sat_nums: int = len(satellites)
     for s in range(sat_nums):
         # 将仰角从弧度 -> 度，计算 zenith angle = 90 - elevation(deg)
-        az_deg = np.degrees(az_by_sv[s])
-        el_deg = np.degrees(el_by_sv[s])
-        zen_deg = 90.0 - el_deg
+        az_deg: np.ndarray = np.degrees(az_by_sv[s])
+        el_deg: np.ndarray = np.degrees(el_by_sv[s])
+        zen_deg: np.ndarray = 90.0 - el_deg
         # 转成绘图用的单位
-        az_rad = np.radians(az_deg)
-        zen_rad = np.radians(zen_deg)
+        az_rad: np.ndarray = np.radians(az_deg)
+        zen_rad: np.ndarray = np.radians(zen_deg)
 
         # ax.plot(
         #     az_rad,
@@ -141,7 +146,7 @@ def sky_plot(
     ax.set_thetagrids(range(0, 360, 30))
     ax.set_rlabel_position(180)
 
-    rad_labels = [f"{90 - angle}°" for angle in [90, 60, 30, 0]]
+    rad_labels: List[str] = [f"{90 - angle}°" for angle in [90, 60, 30, 0]]
 
     # ax.set_yticklabels(rad_labels)
     ax.set_rticks([np.radians(i) for i in [0, 30, 60, 90]])
@@ -158,7 +163,7 @@ def sky_plot(
     plt.show()
 
 
-def get_rotation_matrix(phi, lam):
+def get_rotation_matrix(phi: float, lam: float) -> np.ndarray:
     return np.array([
         [-np.sin(lam), np.cos(lam), 0],
         [-np.sin(phi) * np.cos(lam), -np.sin(phi) * np.sin(lam), np.cos(phi)],

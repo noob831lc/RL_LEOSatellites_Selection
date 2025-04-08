@@ -79,7 +79,10 @@ class PointerNet_GNN(nn.Module):
         return selected_indices, total_log_probs
 
 
-def compute_adjacency(candidate_positions, threshold=1000.0):
+def compute_adjacency(
+    candidate_positions: np.ndarray, 
+    threshold: float = 1000.0
+) -> np.ndarray:
     """
     candidate_positions: numpy 数组，形状 (m, 3)，单位 m
     threshold: 距离阈值（m）
